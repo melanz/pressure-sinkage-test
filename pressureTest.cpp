@@ -603,8 +603,14 @@ bool checkFilled(ChSystem& mphysicalSystem, SoilBin* soilBin, double r)
 	return filled;
 }
 
-int fill(ChSystem& mphysicalSystem, SoilBin* soilBin, double r, std::string rockFile, ChIrrApp* application, bool visualize, double gravity, double desiredBulkDensity, double desiredVelocity)
+int fill(ChSystem& mphysicalSystem, SoilBin* soilBin, double r, std::string rockFile, ChIrrApp* application, bool visualize, double gravity, double desiredBulkDensity, double desiredVelocity, double mu, double mu_r, double mu_s, double c)
 {
+	ChSharedPtr<ChMaterialSurface> mmaterial(new ChMaterialSurface);
+	mmaterial->SetFriction(mu);
+	mmaterial->SetRollingFriction(mu_r);
+	mmaterial->SetSpinningFriction(mu_s);
+	mmaterial->SetCohesion(c);
+
 	printf("Time: %.3f (Stage 1): Num. Bodies = %d\n", mphysicalSystem.GetChTime(), mphysicalSystem.GetNbodies());
 
 	mphysicalSystem.SetIterLCPmaxItersSpeed(20);
@@ -668,6 +674,8 @@ int compress(ChSystem& mphysicalSystem, SoilBin* soilBin, ChIrrApp* application,
 	//	shearBox->setShearSpeed(-mphysicalSystem.GetChTime()*desiredVelocity,desiredVelocity);
 	//	nextStage = 3;
 	//}
+
+	if(mphysicalSystem.GetChTime()>4) nextStage = 3;
 
 	//shearBox->sumCielingVelocity += shearBox->cieling->GetPos_dt().y;
 	//shearBox->nCielingVelocity++;
@@ -785,17 +793,12 @@ int main(int argc, char* argv[])
 		{
 		case 1:
 			// Stage 1: Fill
-			currentStage = fill(mphysicalSystem,soilBin,particleRadius,rockStream.str(),application,visualize,gravity,desiredBulkDensity,desiredVelocity);
+			currentStage = fill(mphysicalSystem,soilBin,particleRadius,rockStream.str(),application,visualize,gravity,desiredBulkDensity,desiredVelocity,muParticles,muParticlesRolling,muParticlesSpinning,cohesion);
 			break;
 		case 2:
 			// Stage 2: Compress
 			pressureData << mphysicalSystem.GetChTime() << ", " << soilBin->plate->GetPos().x << ", " << soilBin->plate->GetPos().y << ", " << soilBin->plate->GetPos().z << ", " << soilBin->translational->Get_react_force().x << ", " << soilBin->translational->Get_react_force().y << ", " << soilBin->translational->Get_react_force().z << ", " << soilBin->plate->GetPos_dt().x << ", " << soilBin->plate->GetPos_dt().y << ", " << soilBin->plate->GetPos_dt().z << ", \n";
 			currentStage = compress(mphysicalSystem,soilBin,application,visualize,maxiterations);
-			break;
-		case 3:
-			// Stage 3: Shear
-			//shearData << mphysicalSystem.GetChTime() << ", " << shearBox->top->GetPos().x << ", " << shearBox->top->GetPos().y << ", " << shearBox->top->GetPos().z << ", " << shearBox->translational->Get_react_force().x << ", " << shearBox->translational->Get_react_force().y << ", " << shearBox->translational->Get_react_force().z << ", " << shearBox->top->GetPos_dt().x << ", " << shearBox->top->GetPos_dt().y << ", " << shearBox->top->GetPos_dt().z << ", \n";
-			//currentStage = shear(mphysicalSystem,shearBox,lengthToRun);
 			break;
 		}
 
